@@ -1,4 +1,4 @@
-function [G, convergence]=Train(time,fold,S0, Z, G,lambda1,lambda2, rho, rRatio, L_F)
+function [G, convergence]=Train(time,fold,S0,S1,S2, Z, G,lambda1,lambda2,lambda3,lambda4, rho, rRatio, L0, L1,L2)
 [num_ins, num_prop] = size(G); % number of instance and properties
 r = ceil(num_prop * rRatio);
 U = eye(num_ins, r);
@@ -30,7 +30,7 @@ while(t<max_iter)
     fprintf(' \n####################### %d times %d cross %d iteretor start..===================== \n', time, fold, t);
     t=t+1;
     
-    G=fminunc(@(G)ProgressG(S0, Z, G,lambda2, rho, L_F, gamma2),G,options);
+    G=fminunc(@(G)ProgressG(S0, S1,S2, Z, G,lambda2,lambda3,lambda4, rho, L0, L1,L2, gamma2),G,options);
     G=real(G);
     
     U = u_solve(G, E,V,rho,gamma1);
@@ -42,12 +42,12 @@ while(t<max_iter)
     gamma1 = gamma1 + rho*(G-U*V-E);
     gamma2 = gamma2 + rho*(G*Ic-Ir);
   
-    convergence(t,1)=get_obj(t,S0, Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2, rho, L_F, Ic, Ir);
+    convergence(t,1)=get_obj(t,S0, S1,S2, Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2,lambda3,lambda4, rho, L0, L1,L2,Ic, Ir);
 end
 end
 
 
-function [obj_value]=get_obj(t,S0, Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2, rho, L_F, Ic, Ir)
+function [obj_value]=get_obj(t,S0,S1,S2, Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2,lambda3,lambda4, rho, L0,L1,L2, Ic, Ir)
 % objective value
 obj_fir = norm(S0.*(Z-G), 'fro')^2;
 
@@ -57,7 +57,7 @@ obj_fir = norm(S0.*(Z-G), 'fro')^2;
 
 obj_sec = lambda1* sum(sum(abs(E),2),1);
 
-tp2 = G'*L_F*G;
+tp2 = G'*L0*G;
 obj_third =  lambda2*trace(tp2);
 
 obj_fourth = sum(sum(gamma1.*(G-U*V-E),1),2);
@@ -66,7 +66,10 @@ obj_fifth = (rho/2)*norm(G-U*V-E,'fro')^2;
 obj_sixth = sum(sum(gamma2.*(G * Ic - Ir),1),2);
 obj_seven = (rho/2)*norm(G * Ic - Ir,'fro')^2;
 
-obj_value = obj_fir +obj_sec + obj_third + obj_fourth+ obj_fifth +obj_sixth+obj_seven;
+add1 = lambda3 * trace((S1.*G)*L1*(S1.*G)');
+add2 = lambda4 * trace((S2.*G)*L2*(S2.*G)');
+
+obj_value = obj_fir +obj_sec + obj_third + obj_fourth+ obj_fifth +obj_sixth+obj_seven+add1+add2;
 end
 
 function [U] = u_solve(G, E,V,rho,gamma1)
