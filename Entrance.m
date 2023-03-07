@@ -10,7 +10,6 @@ features = double(real(features));
 lambda1=10^-2;%L1
 lambda2=10^-6;%correlation1
 lambda3=10^-6;%correlation2
-% lambda4=10^-2;%correlation3
 rho = 10^-2; 
 rRatio = 0.8;
 
@@ -19,8 +18,6 @@ folds = 10; % 10 fold
 [num_sample, num_features] = size(features);
 [~, num_labels] = size(labels);
 
-% S1 = [ones(num_sample, num_features), zeros(num_sample, num_labels)];
-% S2 = [zeros(num_sample, num_features), ones(num_sample, num_labels)];
 
 for time=1:times
     indices = crossvalind('Kfold', num_sample, folds);
@@ -72,32 +69,8 @@ for time=1:times
             L1(i,i) = DF(i,1) + relationFL(i,i);
         end
 
-%         DF = sum(relationF,2);
-%         L1 = -1 * relationF;
-%         col_F = size(L1,1);
-%         for i=1:col_F
-%             L1(i,i) = DF(i,1) + relationF(i,i);
-%         end
-%         L1 = [L1,zeros(num_features,num_labels); zeros(num_labels, num_features+num_labels)];
-
-%         % label correction
-%         relationL = corrcoef([train_distribution],'Rows','complete');
-%         relationL(find(isnan(relationL)==1)) = 0;
-%         DL = sum(relationL,2);
-%         L2 = -1 * relationL;
-%         col_L = size(L2,1);
-%         for i=1:col_L
-%             L2(i,i) = DL(i,1) + relationL(i,i);
-%         end
-% %         L2 = [zeros(num_features, num_features+num_labels); zeros(num_labels, num_features), L2];
-% 
-% 
-%         L1 = [L1, zeros(num_features, num_labels); zeros(num_labels, num_features), L2];
-
         tic
         
-        % init G
-%         G=zeros(size(Z));
         G=Z;
         % Training
         [G,obj_value] = Train(time,fold, S0,  Z, G,lambda1,lambda2,lambda3, rho,rRatio, L0, L1);     

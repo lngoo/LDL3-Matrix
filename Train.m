@@ -52,10 +52,6 @@ function [obj_value]=get_obj(t,S0, Z, G, U, V, E, gamma1, gamma2,lambda1, lambda
 % objective value
 obj_fir = norm(S0.*(Z-G), 'fro')^2;
 
-% L = relationL;
-% tp = train_feature*jointW*L*jointW'*train_feature';
-% obj_sec = trace(tp);
-
 obj_sec = lambda1* sum(sum(abs(E),2),1);
 
 tp2 = G'*L0*G;
@@ -68,7 +64,6 @@ obj_sixth = sum(sum(gamma2.*(G * Ic - Ir),1),2);
 obj_seven = (rho/2)*norm(G * Ic - Ir,'fro')^2;
 
 add1 = lambda3 * trace((G)*L1*(G)');
-% add2 = lambda4 * trace((S2.*G)*L2*(S2.*G)');
 
 obj_value = obj_fir +obj_sec + obj_third + obj_fourth+ obj_fifth +obj_sixth+obj_seven+add1;
 end
