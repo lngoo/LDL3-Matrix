@@ -2,19 +2,21 @@ clear;
 clc;
 cd('./DataSets');
 %     load Human_Gene;
-    load SJAFFE;
+     load SJAFFE;
+%     load Yeast_cold;
+%     load SBU_3DFE;
 cd('../');
 features = double(real(features));
 
 % parameters setting
-lambda1=10^-2;%L1
-lambda2=10^-6;%correlation1
-lambda3=10^-6;%correlation2
-rho = 10^-2; 
-rRatio = 0.8;
+lambda1=10^-1;%L1
+lambda2=10^-2;%instance correlation1
+lambda3=10^-2;%feature correlation2 and label correlation
+rho = 10^-3; 
+rRatio = 0.5;
 
-times = 2;  % 10 times
-folds = 10; % 10 fold
+times = 1;  % 10 times
+folds = 5; % 10 fold
 [num_sample, num_features] = size(features);
 [~, num_labels] = size(labels);
 
@@ -60,7 +62,8 @@ for time=1:times
         relationL = corrcoef([train_distribution],'Rows','complete');
         relationL(find(isnan(relationL)==1)) = 0;
 
-        relationFL = [relationF, zeros(num_features, num_labels); zeros(num_labels, num_features), relationL];
+%         relationFL = [relationF, zeros(num_features, num_labels); zeros(num_labels, num_features), relationL];
+        relationFL = [zeros(size(relationF)), zeros(num_features, num_labels); zeros(num_labels, num_features), relationL];
 
         DF = sum(relationFL,2);
         L1 = -1 * relationFL;
@@ -71,9 +74,10 @@ for time=1:times
 
         tic
         
-        G=Z;
+        G=ones(size(Z));
+        S1 = [zeros(num_sample, num_features), ones(num_sample, num_labels)];
         % Training
-        [G,obj_value] = Train(time,fold, S0,  Z, G,lambda1,lambda2,lambda3, rho,rRatio, L0, L1);     
+        [G,obj_value] = Train(time,fold, S0,S1,  Z, G,lambda1,lambda2,lambda3, rho,rRatio, L0, L1);     
         % Prediction
         pre_distribution = G(num_train+1:num_sample ,num_features+1:num_features+num_labels);
         [trow,tcol]=find(isnan(pre_distribution));
@@ -94,6 +98,7 @@ for time=1:times
     end
     res_once(time,:) = mean(mea,1);
 end
+fprintf('sorensen, kl, chebyshev, intersection, cosine, euclidean, squaredx, fidelity \n');
 meanres=mean(res_once, 1)
 stdres=std(res_once, 1)
 

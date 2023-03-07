@@ -1,4 +1,4 @@
-function [G, convergence]=Train(time,fold,S0, Z, G,lambda1,lambda2,lambda3, rho, rRatio, L0, L1)
+function [G, convergence]=Train(time,fold,S0,S1, Z, G,lambda1,lambda2,lambda3, rho, rRatio, L0, L1)
 [num_ins, num_prop] = size(G); % number of instance and properties
 r = ceil(num_prop * rRatio);
 U = eye(num_ins, r);
@@ -11,7 +11,7 @@ gamma2 = zeros(num_ins,1);
 Ic = ones(col,1);
 Ir = ones(row,1);
 
-max_iter=50;
+max_iter=30;
 
 convergence=zeros(max_iter,1);
 
@@ -31,7 +31,7 @@ while(t<max_iter)
     fprintf(' \n####################### %d times %d cross %d iteretor start..===================== \n', time, fold, t);
     t=t+1;
     
-    G=fminunc(@(G)ProgressG(S0,  Z, G,lambda2,lambda3, rho, L0, L1, gamma2),G,options);
+    G=fminunc(@(G)ProgressG(S0,S1,  Z, G,lambda2,lambda3, rho, L0, L1, gamma2),G,options);
     G=real(G);
     
     U = u_solve(G, E,V,rho,gamma1);
@@ -41,14 +41,18 @@ while(t<max_iter)
 %     E = fista_backtracking_lasso(lambda1, rho, G, U,V,E,gamma1);
     
     gamma1 = gamma1 + rho*(G-U*V-E);
-    gamma2 = gamma2 + rho*(G*Ic-Ir);
+    gamma2 = gamma2 + rho*((G .* S1)*Ic-Ir);
   
-    convergence(t,1)=get_obj(t,S0,  Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2,lambda3, rho, L0, L1,Ic, Ir);
+    convergence(t,1)=get_obj(t,S0,S1,  Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2,lambda3, rho, L0, L1,Ic, Ir);
 end
+
+filename = sprintf('./conv/%s.mat',"conv-"+time+"-"+fold);
+% save filename convergence  
+save (filename ,'convergence')
 end
 
 
-function [obj_value]=get_obj(t,S0, Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2,lambda3, rho, L0,L1, Ic, Ir)
+function [obj_value]=get_obj(t,S0, S1,Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2,lambda3, rho, L0,L1, Ic, Ir)
 % objective value
 obj_fir = norm(S0.*(Z-G), 'fro')^2;
 
@@ -60,8 +64,8 @@ obj_third =  lambda2*trace(tp2);
 obj_fourth = sum(sum(gamma1.*(G-U*V-E),1),2);
 obj_fifth = (rho/2)*norm(G-U*V-E,'fro')^2;
 
-obj_sixth = sum(sum(gamma2.*(G * Ic - Ir),1),2);
-obj_seven = (rho/2)*norm(G * Ic - Ir,'fro')^2;
+obj_sixth = sum(sum(gamma2.*((G.*S1) * Ic - Ir),1),2);
+obj_seven = (rho/2)*norm((G.*S1) * Ic - Ir,'fro')^2;
 
 add1 = lambda3 * trace((G)*L1*(G)');
 
