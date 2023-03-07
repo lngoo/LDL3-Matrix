@@ -1,4 +1,4 @@
-function [G, convergence]=Train(time,fold,S0,S1,S2, Z, G,lambda1,lambda2,lambda3,lambda4, rho, rRatio, L0, L1,L2)
+function [G, convergence]=Train(time,fold,S0, Z, G,lambda1,lambda2,lambda3, rho, rRatio, L0, L1)
 [num_ins, num_prop] = size(G); % number of instance and properties
 r = ceil(num_prop * rRatio);
 U = eye(num_ins, r);
@@ -11,7 +11,7 @@ gamma2 = zeros(num_ins,1);
 Ic = ones(col,1);
 Ir = ones(row,1);
 
-max_iter=30;
+max_iter=50;
 
 convergence=zeros(max_iter,1);
 
@@ -21,6 +21,7 @@ t=0;
 options = optimoptions('fminunc', ...
     'Algorithm','quasi-newton',...
     'HessianApproximation','lbfgs', ...
+    'Display','iter',...
     'MaxIterations',300, ...
     'MaxFunctionEvaluations',300, ...
     'OptimalityTolerance',1e-30, ...
@@ -30,7 +31,7 @@ while(t<max_iter)
     fprintf(' \n####################### %d times %d cross %d iteretor start..===================== \n', time, fold, t);
     t=t+1;
     
-    G=fminunc(@(G)ProgressG(S0, S1,S2, Z, G,lambda2,lambda3,lambda4, rho, L0, L1,L2, gamma2),G,options);
+    G=fminunc(@(G)ProgressG(S0,  Z, G,lambda2,lambda3, rho, L0, L1, gamma2),G,options);
     G=real(G);
     
     U = u_solve(G, E,V,rho,gamma1);
@@ -42,12 +43,12 @@ while(t<max_iter)
     gamma1 = gamma1 + rho*(G-U*V-E);
     gamma2 = gamma2 + rho*(G*Ic-Ir);
   
-    convergence(t,1)=get_obj(t,S0, S1,S2, Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2,lambda3,lambda4, rho, L0, L1,L2,Ic, Ir);
+    convergence(t,1)=get_obj(t,S0,  Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2,lambda3, rho, L0, L1,Ic, Ir);
 end
 end
 
 
-function [obj_value]=get_obj(t,S0,S1,S2, Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2,lambda3,lambda4, rho, L0,L1,L2, Ic, Ir)
+function [obj_value]=get_obj(t,S0, Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2,lambda3, rho, L0,L1, Ic, Ir)
 % objective value
 obj_fir = norm(S0.*(Z-G), 'fro')^2;
 
@@ -66,10 +67,10 @@ obj_fifth = (rho/2)*norm(G-U*V-E,'fro')^2;
 obj_sixth = sum(sum(gamma2.*(G * Ic - Ir),1),2);
 obj_seven = (rho/2)*norm(G * Ic - Ir,'fro')^2;
 
-add1 = lambda3 * trace((S1.*G)*L1*(S1.*G)');
-add2 = lambda4 * trace((S2.*G)*L2*(S2.*G)');
+add1 = lambda3 * trace((G)*L1*(G)');
+% add2 = lambda4 * trace((S2.*G)*L2*(S2.*G)');
 
-obj_value = obj_fir +obj_sec + obj_third + obj_fourth+ obj_fifth +obj_sixth+obj_seven+add1+add2;
+obj_value = obj_fir +obj_sec + obj_third + obj_fourth+ obj_fifth +obj_sixth+obj_seven+add1;
 end
 
 function [U] = u_solve(G, E,V,rho,gamma1)

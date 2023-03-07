@@ -8,19 +8,19 @@ features = double(real(features));
 
 % parameters setting
 lambda1=10^-2;%L1
-lambda2=10^-2;%correlation1
-lambda3=10^-2;%correlation2
-lambda4=10^-2;%correlation3
+lambda2=10^-6;%correlation1
+lambda3=10^-6;%correlation2
+% lambda4=10^-2;%correlation3
 rho = 10^-2; 
-rRatio = 0.5;
+rRatio = 0.8;
 
 times = 2;  % 10 times
-folds = 5; % 10 fold
+folds = 10; % 10 fold
 [num_sample, num_features] = size(features);
 [~, num_labels] = size(labels);
 
-S1 = [ones(num_sample, num_features), zeros(num_sample, num_labels)];
-S2 = [zeros(num_sample, num_features), ones(num_sample, num_labels)];
+% S1 = [ones(num_sample, num_features), zeros(num_sample, num_labels)];
+% S2 = [zeros(num_sample, num_features), ones(num_sample, num_labels)];
 
 for time=1:times
     indices = crossvalind('Kfold', num_sample, folds);
@@ -56,34 +56,51 @@ for time=1:times
             L0(i,i) = DI(i,1) + relationI(i,i);
         end
              
-        % feature correction
+        % feature correction and label correction
         relationF = corrcoef([train_feature;test_feature],'Rows','complete');
         relationF(find(isnan(relationF)==1)) = 0;
-        DF = sum(relationF,2);
-        L1 = -1 * relationF;
-        col_F = size(L1,1);
-        for i=1:col_F
-            L1(i,i) = DF(i,1) + relationF(i,i);
-        end
-        L1 = [L1,zeros(num_features,num_labels); zeros(num_labels, num_features+num_labels)];
 
-        % label correction
         relationL = corrcoef([train_distribution],'Rows','complete');
         relationL(find(isnan(relationL)==1)) = 0;
-        DL = sum(relationL,2);
-        L2 = -1 * relationL;
-        col_L = size(L2,1);
-        for i=1:col_L
-            L2(i,i) = DL(i,1) + relationL(i,i);
+
+        relationFL = [relationF, zeros(num_features, num_labels); zeros(num_labels, num_features), relationL];
+
+        DF = sum(relationFL,2);
+        L1 = -1 * relationFL;
+        col_F = size(L1,1);
+        for i=1:col_F
+            L1(i,i) = DF(i,1) + relationFL(i,i);
         end
-        L2 = [zeros(num_features, num_features+num_labels); zeros(num_labels, num_features), L2];
+
+%         DF = sum(relationF,2);
+%         L1 = -1 * relationF;
+%         col_F = size(L1,1);
+%         for i=1:col_F
+%             L1(i,i) = DF(i,1) + relationF(i,i);
+%         end
+%         L1 = [L1,zeros(num_features,num_labels); zeros(num_labels, num_features+num_labels)];
+
+%         % label correction
+%         relationL = corrcoef([train_distribution],'Rows','complete');
+%         relationL(find(isnan(relationL)==1)) = 0;
+%         DL = sum(relationL,2);
+%         L2 = -1 * relationL;
+%         col_L = size(L2,1);
+%         for i=1:col_L
+%             L2(i,i) = DL(i,1) + relationL(i,i);
+%         end
+% %         L2 = [zeros(num_features, num_features+num_labels); zeros(num_labels, num_features), L2];
+% 
+% 
+%         L1 = [L1, zeros(num_features, num_labels); zeros(num_labels, num_features), L2];
 
         tic
         
         % init G
-        G=ones(size(Z));
+%         G=zeros(size(Z));
+        G=Z;
         % Training
-        [G,obj_value] = Train(time,fold, S0, S1,S2, Z, G,lambda1,lambda2,lambda3,lambda4, rho,rRatio, L0, L1,L2);     
+        [G,obj_value] = Train(time,fold, S0,  Z, G,lambda1,lambda2,lambda3, rho,rRatio, L0, L1);     
         % Prediction
         pre_distribution = G(num_train+1:num_sample ,num_features+1:num_features+num_labels);
         [trow,tcol]=find(isnan(pre_distribution));
