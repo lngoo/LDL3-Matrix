@@ -1,4 +1,4 @@
-function [G, convergence]=Train(time,fold,S0,S1, Z, G,lambda1,lambda2,lambda3, rho, rRatio, L0, L1)
+function [G,U,V,E, convergence]=Train(time,fold,S0,S1, Z, G,lambda1,lambda2,lambda3, rho, rRatio, L0, L1)
 [num_ins, num_prop] = size(G); % number of instance and properties
 r = ceil(num_prop * rRatio);
 U = eye(num_ins, r);
@@ -38,7 +38,7 @@ while(t<max_iter)
     
     V = v_solve(G, E,U,rho,gamma1);
     
-%     E = fista_backtracking_lasso(lambda1, rho, G, U,V,E,gamma1);
+    E = fista_backtracking_lasso(lambda1, rho, G, U,V,E,gamma1);
     
     gamma1 = gamma1 + rho*(G-U*V-E);
     gamma2 = gamma2 + rho*((G .* S1)*Ic-Ir);

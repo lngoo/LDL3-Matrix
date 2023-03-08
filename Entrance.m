@@ -9,11 +9,11 @@ cd('../');
 features = double(real(features));
 
 % parameters setting
-lambda1=10^-1;%L1
-lambda2=10^-2;%instance correlation1
-lambda3=10^-2;%feature correlation2 and label correlation
-rho = 10^-3; 
-rRatio = 0.5;
+lambda1=10^-3;%L1
+lambda2=10^-3;%instance correlation1
+lambda3=10^-3;%feature correlation2 and label correlation
+rho = 10^-1; 
+rRatio = 0.8;
 
 times = 1;  % 10 times
 folds = 5; % 10 fold
@@ -77,9 +77,10 @@ for time=1:times
         G=ones(size(Z));
         S1 = [zeros(num_sample, num_features), ones(num_sample, num_labels)];
         % Training
-        [G,obj_value] = Train(time,fold, S0,S1,  Z, G,lambda1,lambda2,lambda3, rho,rRatio, L0, L1);     
+        [G,U,V,E,obj_value] = Train(time,fold, S0,S1,  Z, G,lambda1,lambda2,lambda3, rho,rRatio, L0, L1);     
         % Prediction
-        pre_distribution = G(num_train+1:num_sample ,num_features+1:num_features+num_labels);
+        K = (U*V+E);
+        pre_distribution = K(num_train+1:num_sample ,num_features+1:num_features+num_labels);
         [trow,tcol]=find(isnan(pre_distribution));
         pre_distribution(trow,:)=[];
         test_distribution(trow,:)=[];
@@ -93,6 +94,7 @@ for time=1:times
         mea(fold,6)=euclideandist(test_distribution, pre_distribution);
         mea(fold,7)=squaredxdist(test_distribution, pre_distribution);
         mea(fold,8)=fidelity(test_distribution, pre_distribution);
+        mea
         cd('../');
         fprintf('=========================== %d times %d cross ( %d seconds )======================= \n', time, fold, toc);
     end
