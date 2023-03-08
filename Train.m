@@ -1,9 +1,7 @@
-function [G,U,V,E, convergence]=Train(time,fold,S0,S1, Z, G,lambda1,lambda2,lambda3, rho, rRatio, L0, L1)
+function [G,M,E, convergence]=Train(time,fold,S0,S1, Z, G,lambda0,lambda1,lambda2,lambda3, rho, L0, L1)
 [num_ins, num_prop] = size(G); % number of instance and properties
-r = ceil(num_prop * rRatio);
-U = eye(num_ins, r);
-V = eye(r, num_prop);
-E = eye(num_ins, num_prop);
+M = G;
+E = zeros(num_ins, num_prop);
 gamma1 = zeros(num_ins,num_prop);
 gamma2 = zeros(num_ins,1);
 
@@ -31,19 +29,20 @@ while(t<max_iter)
     fprintf(' \n####################### %d times %d cross %d iteretor start..===================== \n', time, fold, t);
     t=t+1;
     
-    G=fminunc(@(G)ProgressG(S0,S1,  Z, G,lambda2,lambda3, rho, L0, L1, gamma2),G,options);
+    G=fminunc(@(G)ProgressG(S0,S1,  Z, G,M,E,lambda2,lambda3, rho, L0, L1, gamma1,gamma2),G,options);
     G=real(G);
     
-    U = u_solve(G, E,V,rho,gamma1);
+%     U = u_solve(G, E,V,rho,gamma1);
+%     
+%     V = v_solve(G, E,U,rho,gamma1);
+    M = m_solve(G, E, lambda0, rho,gamma1);
     
-    V = v_solve(G, E,U,rho,gamma1);
+    E = fista_backtracking_lasso(lambda1, rho, G, M,E,gamma1);
     
-    E = fista_backtracking_lasso(lambda1, rho, G, U,V,E,gamma1);
-    
-    gamma1 = gamma1 + rho*(G-U*V-E);
+    gamma1 = gamma1 + rho*(G-M-E);
     gamma2 = gamma2 + rho*((G .* S1)*Ic-Ir);
   
-    convergence(t,1)=get_obj(t,S0,S1,  Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2,lambda3, rho, L0, L1,Ic, Ir);
+    convergence(t,1)=get_obj(t,S0,S1,  Z, G, M, E, gamma1, gamma2,lambda0,lambda1, lambda2,lambda3, rho, L0, L1,Ic, Ir);
 end
 
 filename = sprintf('./conv/%s.mat',"conv-"+time+"-"+fold);
@@ -52,46 +51,38 @@ save (filename ,'convergence')
 end
 
 
-function [obj_value]=get_obj(t,S0, S1,Z, G, U, V, E, gamma1, gamma2,lambda1, lambda2,lambda3, rho, L0,L1, Ic, Ir)
-% objective value
-obj_fir = norm(S0.*(Z-G), 'fro')^2;
+function [obj_value]=get_obj(t,S0, S1,Z, G, M, E, gamma1, gamma2,lambda0,lambda1, lambda2,lambda3, rho, L0,L1, Ic, Ir)
+    % objective value
+    obj_fir = norm(S0.*(Z-G), 'fro')^2;
+    
+    obj_sec = lambda1* sum(sum(abs(E),2),1);
+    
+    tp2 = G'*L0*G;
+    obj_third =  lambda2*trace(tp2);
+    
+    obj_fourth = sum(sum(gamma1.*(G-M-E),1),2);
+    obj_fifth = (rho/2)*norm(G-M-E,'fro')^2;
+    
+    obj_sixth = sum(sum(gamma2.*((G.*S1) * Ic - Ir),1),2);
+    obj_seven = (rho/2)*norm((G.*S1) * Ic - Ir,'fro')^2;
+    
+    add1 = lambda3 * trace((G)*L1*(G)');
 
-obj_sec = lambda1* sum(sum(abs(E),2),1);
-
-tp2 = G'*L0*G;
-obj_third =  lambda2*trace(tp2);
-
-obj_fourth = sum(sum(gamma1.*(G-U*V-E),1),2);
-obj_fifth = (rho/2)*norm(G-U*V-E,'fro')^2;
-
-obj_sixth = sum(sum(gamma2.*((G.*S1) * Ic - Ir),1),2);
-obj_seven = (rho/2)*norm((G.*S1) * Ic - Ir,'fro')^2;
-
-add1 = lambda3 * trace((G)*L1*(G)');
-
-obj_value = obj_fir +obj_sec + obj_third + obj_fourth+ obj_fifth +obj_sixth+obj_seven+add1;
+    add2 = lambda0 * sum(svd(M,'econ'));
+    
+    obj_value = obj_fir +obj_sec + obj_third + obj_fourth+ obj_fifth +obj_sixth+obj_seven+add1+add2;
 end
 
-function [U] = u_solve(G, E,V,rho,gamma1)
-  U = (G-E+(1/rho)*gamma1)*V'/(V*V');
+% singular_value_threshold
+function M1=m_solve(G, E, lambda0, rho,gamma1)
+    [U,Sigma,V]=svd(E-G-gamma1./rho);
+    [row,col]=size(Sigma);
+    temp = zeros(size(Sigma,1),size(Sigma,2));
+    for i=1:row
+        for j=1:col
+            temp(i,j)=max(Sigma(i,j)-lambda0/rho,0);
+        end
+    end
+    M1 = U*temp*V';
 end
-
-function [V] = v_solve(G, E,U,rho,gamma1)
-  V = (U'*U)\U'*(G-E+(1/rho)*gamma1);
-end
-
-% function [weight3] = w3_solve(weight1,gamma2,lambda1,rho)
-% Q = weight1 + gamma2./rho;
-% C = lambda1/rho;
-% [row,col] = size(Q);
-% zo = zeros(row,1);
-% for i=1:col
-%     value = norm(Q(:,i));
-%     if value>C
-%         weight3(:,i) = (value - C) / value * Q(:,i);
-%     else
-%         weight3(:,i) = zo;
-%     end
-% end
-% end
 

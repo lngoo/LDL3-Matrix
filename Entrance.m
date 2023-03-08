@@ -9,11 +9,11 @@ cd('../');
 features = double(real(features));
 
 % parameters setting
+lambda0=10^-3;%L1
 lambda1=10^-3;%L1
 lambda2=10^-3;%instance correlation1
 lambda3=10^-3;%feature correlation2 and label correlation
 rho = 10^-1; 
-rRatio = 0.8;
 
 times = 1;  % 10 times
 folds = 5; % 10 fold
@@ -77,9 +77,9 @@ for time=1:times
         G=ones(size(Z));
         S1 = [zeros(num_sample, num_features), ones(num_sample, num_labels)];
         % Training
-        [G,U,V,E,obj_value] = Train(time,fold, S0,S1,  Z, G,lambda1,lambda2,lambda3, rho,rRatio, L0, L1);     
+        [G,M,E,obj_value] = Train(time,fold, S0,S1,  Z, G,lambda0,lambda1,lambda2,lambda3, rho, L0, L1);     
         % Prediction
-        K = (U*V+E);
+        K = (M+E);
         pre_distribution = K(num_train+1:num_sample ,num_features+1:num_features+num_labels);
         [trow,tcol]=find(isnan(pre_distribution));
         pre_distribution(trow,:)=[];

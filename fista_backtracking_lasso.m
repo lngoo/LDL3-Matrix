@@ -1,23 +1,23 @@
-function x_new = fista_backtracking_lasso(lambda1, rho, G, U,V,E,gamma1)
+function x_new = fista_backtracking_lasso(lambda1, rho, G, M,E,gamma1)
 % Solves the following problem via FISTA:
-%  lambda1 ||E||_1 + rho/2*||G-UV-E+1/rho*gamma1)||_F^2
+%  lambda1 ||E||_1 + rho/2*||G-M-E+1/rho*gamma1)||_F^2
 
 
 L0 = 1.05; % initial choice of stepsize
 eta = 1.01; % the constant in which the stepsize is multiplied
 iter = 70; 
 
-%% f = rho/2*||G-UV-E+1/rho*gamma1)||_F^2
-f = @(E) rho/2*norm(G-U*V-E+(1/rho)*gamma1,'fro')^2;
+%% f = rho/2*||G-M-E+1/rho*gamma1)||_F^2
+f = @(E) rho/2*norm(G-M-E+(1/rho)*gamma1,'fro')^2;
 
 %% g = lambda1 ||E||_1
 g = @(E) lambda1 * norm(E,1);
 
 %% the gradient of f
-grad = @(E) -1*rho*(G-U*V-E+(1/rho)*gamma1);
+grad = @(E) -1*rho*(G-M-E+(1/rho)*gamma1);
 
 %% computer F
-F = @(E) rho/2*norm(G-U*V-E+(1/rho)*gamma1,'fro')^2 +  lambda1 * norm(E,1);
+F = @(E) rho/2*norm(G-M-E+(1/rho)*gamma1,'fro')^2 +  lambda1 * norm(E,1);
 
 %% shrinkage operator
 S = @(tau, g) max(0, g - tau) + min(0, g + tau);
