@@ -1,4 +1,4 @@
-function [obj_value,obj_grad]=ProgressG(S0, S1, Z, G,lambda2,lambda3, rho, L0,L1, gamma2)
+function [obj_value,obj_grad]=ProgressG(S0, S1,S2, Z, G,lambda2,lambda3, rho, L0,L1, gamma2)
     [row,col] = size(Z);
     Ic = ones(col,1);
     Ir = ones(row,1);
@@ -9,10 +9,10 @@ function [obj_value,obj_grad]=ProgressG(S0, S1, Z, G,lambda2,lambda3, rho, L0,L1
     temp(isnan(temp)) = 0;
     obj_fir = norm(temp, 'fro')^2;
     
-    tp = G'*L0*G;   
+    tp = (G.*S1)'*L0*(G.*S1);   
     obj_sec = trace(tp);
 
-    tp2 = (G) * L1 *(G)';
+    tp2 = (G.*S2) * L1 *(G.*S2)';
     obj_third = trace(tp2);
 
     
@@ -22,8 +22,8 @@ function [obj_value,obj_grad]=ProgressG(S0, S1, Z, G,lambda2,lambda3, rho, L0,L1
     
     % objective grad
     grad_fir = -2*(S0.*(Z-G));
-    grad_sec = lambda2 * ((L0'+L0)*G);
-    grad_third = lambda3 * (G*(L1'+L1));
+    grad_sec = lambda2 * ((L0'+L0)*(G.*S1).*S1);
+    grad_third = lambda3 * ((G.*S2)*(L1'+L1).*S2);
     grad_four = 2 *rho*((((G.*S1)*Ic-Ir+(1/rho)*gamma2)*Ic').*S1);
     
     obj_grad = grad_fir + grad_sec + grad_third + grad_four;
