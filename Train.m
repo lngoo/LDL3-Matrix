@@ -1,6 +1,6 @@
 function [G,U,V,E, convergence]=Train(time,fold, S0,S1, Z, G,lambda1,lambda2,lambda3, rho)
 [num_ins, num_prop] = size(G); % number of instance and properties
-U = eye(num_ins, num_prop);
+U = G;
 V = eye(num_ins, num_ins);
 E = eye(num_ins, num_prop);
 gamma1 = zeros(num_ins,num_prop);
@@ -11,7 +11,7 @@ gamma3 = zeros(num_ins,1);
 Ic = ones(col,1);
 Ir = ones(row,1);
 
-max_iter=50;
+max_iter=20;
 
 convergence=zeros(max_iter,1);
 
@@ -27,6 +27,7 @@ options = optimoptions('fminunc', ...
     'MaxFunctionEvaluations',300, ...
     'OptimalityTolerance',1e-30, ...
     'SpecifyObjectiveGradient',true);
+
 
 while(t<max_iter)
     fprintf(' \n####################### %d times %d cross %d iteretor start..===================== \n', time, fold, t);
@@ -73,7 +74,7 @@ end
 
 % singular_value_threshold
 function M1=u_solve(lambda1,G,rho,gamma2)
-    [U,Sigma,V]=svd(G-gamma2./rho);
+    [U,Sigma,V]=svd(G+gamma2./rho);
     tao = lambda1/rho;
     [row,col]=size(Sigma);
     temp = zeros(size(Sigma,1),size(Sigma,2));

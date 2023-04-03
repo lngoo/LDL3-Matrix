@@ -12,7 +12,7 @@ features = double(real(features));
 lambda1=10^-3;%L1
 lambda2=10^-3;%instance correlation1
 lambda3=10^-3;%feature correlation2 and label correlation
-rho = 10^-1; 
+rho = 10^-3; 
 
 times = 1;  % 10 times
 folds = 5; % 10 fold
