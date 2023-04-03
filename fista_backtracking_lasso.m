@@ -8,16 +8,16 @@ eta = 1.01; % the constant in which the stepsize is multiplied
 iter = 70; 
 
 %% f = rho/2*||G-UV-E+1/rho*gamma1)||_F^2
-f = @(E) rho/2*norm(G-V*G-E+(1/rho)*gamma1,'fro')^2;
+f = @(V) rho/2*norm(G-V*G-E+(1/rho)*gamma1,'fro')^2;
 
-%% g = lambda1 ||E||_1
-g = @(E) lambda2 * norm(E,1);
+%% g = lambda1 ||V||_1
+g = @(V) lambda2 * norm(V,1);
 
 %% the gradient of f
-grad = @(E) -1*rho*(G-V*G-E+(1/rho)*gamma1);
+grad = @(V) -1*rho*((G-V*G-E+(1/rho)*gamma1)*G');
 
 %% computer F
-F = @(E) rho/2*norm(G-V*G-E+(1/rho)*gamma1,'fro')^2 +  lambda2 * norm(E,1);
+F = @(V) rho/2*norm(G-V*G-E+(1/rho)*gamma1,'fro')^2 +  lambda2 * norm(V,1);
 
 %% shrinkage operator
 S = @(tau, g) max(0, g - tau) + min(0, g + tau);
@@ -28,8 +28,8 @@ P = @(L, y) S(lambda2/L, y - (1/L)*grad(y));
 %% computer Q
 Q = @(L, x, y) f(y) + (x-y)'*grad(y) + 0.5*L*norm(x-y) + g(x);
 
-x_old = E;
-y_old = E;
+x_old = V;
+y_old = V;
 L_new = L0;
 t_old = 1;
 %% MAIN LOOP

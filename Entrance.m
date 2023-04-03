@@ -33,6 +33,8 @@ for time=1:times
         
         [num_train, ~] = size(train_feature);
         [num_test, ~] = size(test_feature);
+
+        tic;
         
         % mask matrix
         S0 = ones(num_train, num_features+num_labels);
