@@ -1,8 +1,7 @@
-function [G,U,V,E, convergence]=Train(time,fold, S0,S1, Z, G,lambda1,lambda2,lambda3, rho)
+function [G,U,V, convergence]=Train(time,fold, S0,S1,S2, Z, G,lambda1,lambda2, rho)
 [num_ins, num_prop] = size(G); % number of instance and properties
 U = G;
 V = eye(num_ins, num_ins);
-E = eye(num_ins, num_prop);
 gamma1 = zeros(num_ins,num_prop);
 gamma2 = zeros(num_ins,num_prop);
 gamma3 = zeros(num_ins,1);
@@ -33,20 +32,18 @@ while(t<max_iter)
     fprintf(' \n####################### %d times %d cross %d iteretor start..===================== \n', time, fold, t);
     t=t+1;
     
-    G=fminunc(@(G)ProgressG(S0,S1,  Z, G,U,V,E, rho, gamma1,gamma2,gamma3),G,options);
+    G=fminunc(@(G)ProgressG(S0,S1,S2,  Z, G,U,V, rho, gamma1,gamma2,gamma3),G,options);
     G=real(G);
     
     U = u_solve(lambda1,G,rho,gamma2);
     
-    V = fista_backtracking_lasso(lambda2, rho, G, V,E,gamma1);
+    V = fista_backtracking_lasso(lambda2, S2,rho, G, V,gamma1);
     
-    E = e_solve(G, V,rho,gamma1,lambda3);
-    
-    gamma1 = gamma1 + rho*(G-V*G-E);
+    gamma1 = gamma1 + rho*(G-(V.*S2)*G);
     gamma2 = gamma2 + rho*(G-U);
     gamma3 = gamma3 + rho*((G .* S1)*Ic-Ir);
   
-    convergence(t,1)=get_obj(t,S0,S1, Z, G, U, V, E, gamma1, gamma2,gamma3,lambda1, lambda2,lambda3, rho,Ic, Ir);
+    convergence(t,1)=get_obj(t,S0,S1,S2, Z, G, U, V, gamma1, gamma2,gamma3,lambda1, lambda2, rho,Ic, Ir);
 end
 
 filename = sprintf('./conv/%s.mat',"conv-"+time+"-"+fold);
@@ -55,7 +52,7 @@ save (filename ,'convergence')
 end
 
 
-function [obj_value]=get_obj(t,S0,S1, Z, G, U, V, E, gamma1, gamma2,gamma3,lambda1, lambda2,lambda3, rho,Ic, Ir)
+function [obj_value]=get_obj(t,S0,S1,S2, Z, G, U, V, gamma1, gamma2,gamma3,lambda1, lambda2, rho,Ic, Ir)
 % objective value
 obj_fir = norm(S0.*(G-Z), 'fro')^2;
 
@@ -63,9 +60,10 @@ obj_sec = lambda1 * sum(svd(U,'econ'));  % F-noclear
 
 obj_third = lambda2 * sum(sum(abs(V),2),1); % F-1
 
-obj_fourth = lambda3 * sum(sqrt(sum(E.^2,2)));  % F-21
+% obj_fourth = lambda3 * sum(sqrt(sum(E.^2,2)));  % F-21
+obj_fourth = 0;  % F-21
 
-obj_fifth = (rho/2)*norm(G-V*G-E,'fro')^2 + sum(sum(gamma1.*(G-V*G-E),1),2);
+obj_fifth = (rho/2)*norm(G-(V.*S2)*G,'fro')^2 + sum(sum(gamma1.*(G-(V.*S2)*G),1),2);
 obj_sixth = (rho/2)*norm(G-U,'fro')^2 + sum(sum(gamma2.*(G-U),1),2);
 obj_seven = (rho/2)*norm((G.*S1) * Ic - Ir,'fro')^2 + sum(sum(gamma3.*((G.*S1) * Ic - Ir),1),2);
 

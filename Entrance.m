@@ -11,7 +11,6 @@ features = double(real(features));
 % parameters setting
 lambda1=10^-3;%L1
 lambda2=10^-3;%instance correlation1
-lambda3=10^-3;%feature correlation2 and label correlation
 rho = 10^-3; 
 
 times = 1;  % 10 times
@@ -48,9 +47,13 @@ for time=1:times
 
         G=Z;
         S1 = [zeros(num_sample, num_features), ones(num_sample, num_labels)];
+        S2 = ones(num_sample);
+        for i = 1 : num_sample
+            S2(i,i) = 0;
+        end
 
         % Training
-        [G,U,V,E,obj_value] = Train(time,fold, S0,S1, Z, G,lambda1,lambda2,lambda3, rho);     
+        [G,U,V,obj_value] = Train(time,fold, S0,S1,S2, Z, G,lambda1,lambda2, rho);     
         % Prediction
         pre_distribution = G(num_train+1:num_sample ,num_features+1:num_features+num_labels);
         [trow,tcol]=find(isnan(pre_distribution));
